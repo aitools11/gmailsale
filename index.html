@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>জিমেইল মার্কেটপ্লেস </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3a0ca3;
+            --success: #06d6a0;
+            --warning: #ffd166;
+            --danger: #ef476f;
+            --info: #4cc9f0;
+            --dark: #1a1a2e;
+            --light: #f8f9fa;
+        }
+        
+        * { font-family: 'Hind Siliguri', sans-serif; }
+        body { background-color: #f5f7ff; color: #333; scroll-behavior: smooth; }
+        #auth-section { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .auth-container { max-width: 450px; width: 100%; }
+        .auth-card { background: white; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); overflow: hidden; }
+        .auth-header { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; padding: 30px; text-align: center; }
+        .auth-header h2 { margin: 0; font-weight: 700; }
+        .auth-body { padding: 30px; }
+        .auth-tabs { display: flex; margin-bottom: 25px; border-bottom: 2px solid #eee; }
+        .auth-tab { flex: 1; text-align: center; padding: 12px; cursor: pointer; font-weight: 600; color: #666; transition: all 0.3s; border-bottom: 3px solid transparent; }
+        .auth-tab.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
+        .auth-form { display: none; }
+        .auth-form.active { display: block; }
+        .form-control { border-radius: 10px; padding: 12px 15px; border: 2px solid #eaeaea; transition: all 0.3s; }
+        .btn-auth { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; width: 100%; transition: all 0.3s; cursor: pointer; }
+        #main-system { display: none; }
+        .navbar { background: linear-gradient(135deg, var(--primary), var(--secondary)); box-shadow: 0 4px 12px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
+        .section { padding-top: 80px; margin-top: -60px; min-height: 100vh; display: none; }
+        .section.active { display: block; }
+        .hero-section { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; padding: 50px 0; border-radius: 0 0 30px 30px; margin-bottom: 40px; }
+        .balance-card { background: linear-gradient(135deg, var(--success), #0cb48a); color: white; border-radius: 15px; padding: 20px; box-shadow: 0 8px 20px rgba(6, 214, 160, 0.3); }
+        .card { border: none; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); margin-bottom: 20px; }
+        .card-header { background-color: var(--primary); color: white; border-radius: 15px 15px 0 0 !important; padding: 15px 20px; font-weight: 600; }
+        .status-badge { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: capitalize; }
+        .pending { background-color: #fff3cd; color: #856404; }
+        .approved { background-color: #d4edda; color: #155724; }
+        .rejected { background-color: #f8d7da; color: #721c24; }
+        .quick-action-btn { display: flex; flex-direction: column; align-items: center; padding: 15px; border-radius: 10px; background: white; cursor: pointer; transition: 0.3s; border: 2px solid transparent; }
+        .quick-action-btn:hover { border-color: var(--primary); transform: translateY(-5px); }
+        .quick-action-icon { width: 60px; height: 60px; background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; font-size: 24px; }
+        .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 10px; }
+        .withdraw-method { border: 2px solid #eaeaea; border-radius: 10px; padding: 15px; cursor: pointer; transition: 0.3s; text-align: center; }
+        .withdraw-method.active { border-color: var(--primary); background: #f0f3ff; }
+    </style>
+</head>
+<body>
+
+    <section id="auth-section">
+        <div class="auth-container">
+            <div class="auth-card">
+                <div class="auth-header">
+                    <h2>জিমেইল মার্কেটপ্লেস</h2>
+                </div>
+                <div class="auth-body">
+                    <div class="auth-tabs">
+                        <div class="auth-tab active" id="loginTab">লগইন</div>
+                        <div class="auth-tab" id="registerTab">রেজিস্ট্রেশন</div>
+                    </div>
+                    <form id="loginForm" class="auth-form active">
+                        <input type="email" class="form-control mb-3" id="loginEmail" placeholder="ইমেইল" required>
+                        <input type="password" class="form-control mb-3" id="loginPassword" placeholder="পাসওয়ার্ড" required>
+                        <button type="submit" class="btn-auth">লগইন করুন</button>
+                    </form>
+                    <form id="registerForm" class="auth-form">
+                        <input type="text" class="form-control mb-3" id="registerName" placeholder="পূর্ণ নাম" required>
+                        <input type="email" class="form-control mb-3" id="registerEmail" placeholder="ইমেইল" required>
+                        <input type="text" class="form-control mb-3" id="registerPhone" placeholder="মোবাইল নম্বর" required>
+                        <input type="password" class="form-control mb-3" id="registerPassword" placeholder="পাসওয়ার্ড" required minlength="6">
+                        <button type="submit" class="btn-auth">অ্যাকাউন্ট তৈরি করুন</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div id="main-system">
+        <nav class="navbar navbar-expand-lg navbar-dark">
+            <div class="container">
+                <a class="navbar-brand" href="#" onclick="showSection('home')">জিমেইল মার্কেট</a>
+                <div class="ms-auto d-flex align-items-center">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <a href="#" id="logoutLink" class="text-white text-decoration-none small">লগআউট</a>
+                </div>
+            </div>
+        </nav>
+
+        <section id="home" class="section active">
+            <div class="hero-section">
+                <div class="container">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 id="welcomeMessage">স্বাগতম!</h1>
+                            <p>জিমেইল বিক্রি করে ইনকাম শুরু করুন।</p>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="balance-card">
+                                <h5>ব্যালেন্স</h5>
+                                <h2 id="userBalance">৳ ০</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="container">
+                <div class="row mb-4">
+                    <div class="col-6 col-md-4 mb-3">
+                        <div class="quick-action-btn" onclick="showSection('home')">
+                            <div class="quick-action-icon"><i class="fas fa-plus"></i></div>
+                            <h6>জিমেইল বিক্রি</h6>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-4 mb-3">
+                        <div class="quick-action-btn" onclick="showSection('withdraw')">
+                            <div class="quick-action-icon"><i class="fas fa-wallet"></i></div>
+                            <h6>টাকা উত্তোলন</h6>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">জিমেইল জমা দিন</div>
+                    <div class="card-body">
+                        <form id="sellGmailForm">
+                            <input type="email" class="form-control mb-3" id="gmailAddress" placeholder="জিমেইল এড্রেস" required>
+                            <input type="password" class="form-control mb-3" id="gmailPassword" placeholder="পাসওয়ার্ড" required>
+                            <button type="submit" class="btn btn-success w-100">বিক্রি করুন</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header">বিক্রির হিস্টোরি</div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>জিমেইল</th>
+                                        <th>স্ট্যাটাস</th>
+                                        <th>টাকা</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sellHistory"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="withdraw" class="section">
+            <div class="container mt-5">
+                <h3>টাকা উত্তোলন</h3>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="withdraw-method active mb-3">বিকাশ</div>
+                                <input type="number" id="withdrawAmount" class="form-control mb-3" placeholder="পরিমাণ (৳)" min="100">
+                                <input type="text" id="accountNumber" class="form-control mb-3" placeholder="মোবাইল নম্বর">
+                                <button class="btn btn-primary w-100" onclick="requestWithdrawal()">উত্তোলন রিকোয়েস্ট</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">উত্তোলন হিস্টোরি</div>
+                            <div class="card-body">
+                                <table class="table">
+                                    <tbody id="withdrawHistory"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyArig1nu2PH1eQBauFPW6wDGyawoQIfH-M",
+            authDomain: "live-cricat.firebaseio.com",
+            projectId: "live-cricat",
+            storageBucket: "live-cricat.firebasestorage.app",
+            messagingSenderId: "6638993166",
+            appId: "1:6638993166:android:86b7e1e3b997880fda615f"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        let currentUser = null;
+        let currentBalance = 0;
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('auth-section').style.display = 'none';
+                document.getElementById('main-system').style.display = 'block';
+                listenToUpdates();
+            } else {
+                document.getElementById('auth-section').style.display = 'flex';
+                document.getElementById('main-system').style.display = 'none';
+            }
+        });
+
+        function listenToUpdates() {
+            // User Data & Balance Live Update
+            db.collection('users').doc(currentUser.uid).onSnapshot(doc => {
+                if (doc.exists) {
+                    currentBalance = doc.data().balance || 0;
+                    document.getElementById('userBalance').innerText = `৳ ${currentBalance}`;
+                    document.getElementById('welcomeMessage').innerText = `স্বাগতম, ${doc.data().name}!`;
+                    document.getElementById('userAvatar').innerText = doc.data().name[0].toUpperCase();
+                }
+            });
+
+            // Sales History Live Update
+            db.collection('sales').where('userId', '==', currentUser.uid).orderBy('createdAt', 'desc')
+            .onSnapshot(snapshot => {
+                const tbody = document.getElementById('sellHistory');
+                tbody.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    tbody.innerHTML += `<tr>
+                        <td>${data.email}</td>
+                        <td><span class="status-badge ${data.status}">${data.status}</span></td>
+                        <td>৳ ${data.amount}</td>
+                    </tr>`;
+                });
+            });
+
+            // Withdraw History Live Update
+            db.collection('withdrawals').where('userId', '==', currentUser.uid).orderBy('requestedAt', 'desc')
+            .onSnapshot(snapshot => {
+                const tbody = document.getElementById('withdrawHistory');
+                tbody.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    tbody.innerHTML += `<tr>
+                        <td>${data.amount}৳</td>
+                        <td>${data.status}</td>
+                    </tr>`;
+                });
+            });
+        }
+
+        // Sell Gmail
+        document.getElementById('sellGmailForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('gmailAddress').value;
+            const pass = document.getElementById('gmailPassword').value;
+
+            await db.collection('sales').add({
+                userId: currentUser.uid,
+                email: email, pass: pass,
+                status: 'pending',
+                amount: 10,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            alert('জমা হয়েছে! Approve হলে টাকা পাবেন।');
+            document.getElementById('sellGmailForm').reset();
+        };
+
+        // Withdrawal Request
+        async function requestWithdrawal() {
+            const amount = parseInt(document.getElementById('withdrawAmount').value);
+            const number = document.getElementById('accountNumber').value;
+
+            if (amount < 100) return alert("সর্বনিম্ন ১০০৳ উত্তোলন করা যাবে।");
+            if (amount > currentBalance) return alert("পর্যাপ্ত ব্যালেন্স নেই!");
+
+            // ব্যালেন্স থেকে টাকা কেটে নেওয়া এবং রিকোয়েস্ট পাঠানো
+            const userRef = db.collection('users').doc(currentUser.uid);
+            await db.runTransaction(async (transaction) => {
+                transaction.update(userRef, { balance: currentBalance - amount });
+                transaction.set(db.collection('withdrawals').doc(), {
+                    userId: currentUser.uid,
+                    amount: amount,
+                    number: number,
+                    status: 'pending',
+                    requestedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            });
+
+            alert("উত্তোলন রিকোয়েস্ট সফল হয়েছে!");
+            document.getElementById('withdrawAmount').value = '';
+            document.getElementById('accountNumber').value = '';
+        }
+
+        // Auth Logic
+        document.getElementById('loginForm').onsubmit = async (e) => {
+            e.preventDefault();
+            try { await auth.signInWithEmailAndPassword(document.getElementById('loginEmail').value, document.getElementById('loginPassword').value); } 
+            catch(err) { alert("ভুল তথ্য দিয়েছেন!"); }
+        };
+
+        document.getElementById('registerForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const phone = document.getElementById('registerPhone').value;
+            const pass = document.getElementById('registerPassword').value;
+            try {
+                const res = await auth.createUserWithEmailAndPassword(email, pass);
+                await db.collection('users').doc(res.user.uid).set({ uid: res.user.uid, name, email, phone, balance: 0 });
+            } catch(err) { alert(err.message); }
+        };
+
+        document.getElementById('logoutLink').onclick = () => auth.signOut();
+
+        function showSection(id) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        document.getElementById('loginTab').onclick = () => {
+            document.getElementById('loginForm').classList.add('active');
+            document.getElementById('registerForm').classList.remove('active');
+            document.getElementById('loginTab').classList.add('active');
+            document.getElementById('registerTab').classList.remove('active');
+        };
+        document.getElementById('registerTab').onclick = () => {
+            document.getElementById('registerForm').classList.add('active');
+            document.getElementById('loginForm').classList.remove('active');
+            document.getElementById('registerTab').classList.add('active');
+            document.getElementById('loginTab').classList.remove('active');
+        };
+    </script>
+</body>
+</html>
